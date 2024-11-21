@@ -1,0 +1,450 @@
+openapi: 3.0.3
+info:
+  title: Telegram API
+  description: API для мессенджера Telegram.
+  contact:
+    email: aleksejparhomenko14192@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.11
+  
+servers:
+  - url: https://api.telegram.example/v1
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        profilePhoto:
+          type: string
+          format: uri
+          nullable: true
+        lastSeen:
+          type: string
+          format: date-time
+        isOnline:
+          type: boolean
+          
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [private, group, supergroup, channel]
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        membersCount:
+          type: integer
+          minimum: 1
+        photo:
+          type: string
+          format: uri
+          nullable: true
+          
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        chatId:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        replyToMessageId:
+          type: integer
+          format: int64
+          nullable: true
+        forwardFromMessageId:
+          type: integer
+          format: int64
+          nullable: true
+        text:
+          type: string
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+        sentAt:
+          type: string
+          format: date-time
+        editedAt:
+          type: string
+          format: date-time
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          
+    Media:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [photo, video, audio, document, sticker, animation]
+        url:
+          type: string
+          format: uri
+        size:
+          type: integer
+        mimeType:
+          type: string
+        duration:
+          type: integer
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+          nullable: true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: chats
+    description: Операции с чатами и сообщениями
+  - name: users
+    description: Операции с пользователями
+  
+paths:
+  /users:
+    post:
+      tags:
+        - users
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'          
+        '400':
+          description: Некорректный запрос
+        '422':
+          description: Ошибка валидации данных
+            
+    
+  /users/{userId}:
+    get:
+      summary: Получение информации о пользователе
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Информация о пользователе успешно получена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не был найден
+    
+    put:
+      summary: Обновление информации пользователя
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Информация о пользователе успешно обновлена
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не был найден
+        '422':
+          description: Ошибка валидации данных
+    
+    delete:
+      summary: Удаление пользователя
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Пользователь успешно удален
+        '401':
+          description: Не авторизован
+        '404':
+          description: Пользователь не был найден
+          
+  /chats:
+    post:
+      summary: Создание нового чата
+      tags:
+        - chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chat'
+      responses:
+        '201':
+          description: Чат успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'          
+        '400':
+          description: Некорректный запрос
+        '422':
+          description: Ошибка валидации данных
+  
+  /chats/{chatId}/messages:
+    post:
+      summary: Отправка сообщения в чат
+      tags:
+        - chats
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '201':
+          description: Сообщение успешно отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'          
+        '400':
+          description: Некорректный запрос
+        '422':
+          description: Ошибка валидации данных
+          
+    get:
+      summary: Получение истории сообщений
+      tags:
+        - chats
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: beforeMessageId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: История сообщений успешно получена
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Сообщения не были найдены
+    
+  /chats/{chatId}/messages/{messageId}:
+    put:
+      summary: Редактирование сообщения
+      tags:
+        - chats
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '200':
+          description: Сообщение успешно отредактировано
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Сообщение не было найдено
+        '422':
+          description: Ошибка валидации данных
+    
+    get:
+      summary: Получение сообщения
+      tags:
+        - chats
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Сообщение успешно получено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Сообщение не было найдено
+    
+    delete:
+      summary: Удаление сообщения
+      tags:
+        - chats
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Сообщение успешно удалено
+        '401':
+          description: Не авторизован
+        '404':
+          description: Сообщение не было найдено
+    
+  /users/{userId}/chats:
+    get:
+      summary: Получение списка чатов пользователя
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список чатов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Не авторизован
+        '404':
+          description: Чаты не были найдены
